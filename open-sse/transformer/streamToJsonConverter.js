@@ -25,6 +25,17 @@ function processSSEMessage(msg, state) {
   if (eventType === "response.created") {
     state.responseId = parsed.response?.id || state.responseId;
     state.created = parsed.response?.created_at || state.created;
+  } else if (eventType === "response.output_item.added") {
+    state.items.set(parsed.output_index ?? 0, parsed.item);
+  } else if (eventType === "response.output_text.delta") {
+    const index = parsed.output_index ?? 0;
+    const item = state.items.get(index) || { type: "message", role: "assistant", content: [] };
+    const contentIndex = parsed.content_index ?? 0;
+    const content = item.content?.[contentIndex] || { type: "output_text", text: "", annotations: [] };
+    content.text += parsed.delta || "";
+    item.content = [...(item.content || [])];
+    item.content[contentIndex] = content;
+    state.items.set(index, item);
   } else if (eventType === "response.output_item.done") {
     state.items.set(parsed.output_index ?? 0, parsed.item);
   } else if (eventType === "response.completed" || eventType === "response.done") {
