@@ -66,6 +66,7 @@ export async function convertResponsesStreamToJson(stream) {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let eventLine = "";
 
   const state = {
     responseId: "",
@@ -81,18 +82,21 @@ export async function convertResponsesStreamToJson(stream) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const messages = buffer.split(/\r?\n[\t ]*\r?\n/);
-      buffer = messages.pop() || "";
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
 
-      for (const msg of messages) {
-        processSSEMessage(msg, state);
+      for (const line of lines) {
+        if (line.startsWith("event:")) eventLine = line;
+        else if (line.startsWith("data:")) {
+          processSSEMessage(`${eventLine}\n${line}`, state);
+          eventLine = "";
+        }
       }
     }
 
-    // Flush remaining buffer (last event may not end with \n\n)
-    if (buffer.trim()) {
-      processSSEMessage(buffer, state);
-    }
+    // Flush remaining line (last event may not end with a newline)
+    if (buffer.startsWith("event:")) eventLine = buffer;
+    else if (buffer.startsWith("data:")) processSSEMessage(`${eventLine}\n${buffer}`, state);
   } finally {
     reader.releaseLock();
   }
