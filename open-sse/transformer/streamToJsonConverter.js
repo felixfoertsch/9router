@@ -41,6 +41,9 @@ function processSSEMessage(msg, state) {
     state.items.set(parsed.output_index ?? 0, parsed.item);
   } else if (eventType === "response.completed" || eventType === "response.done") {
     state.status = "completed";
+    if (Array.isArray(parsed.response?.output)) {
+      state.items = new Map(parsed.response.output.map((item, index) => [index, item]));
+    }
     if (parsed.response?.usage) {
       state.usage.input_tokens = parsed.response.usage.input_tokens || 0;
       state.usage.output_tokens = parsed.response.usage.output_tokens || 0;

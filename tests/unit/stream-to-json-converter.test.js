@@ -47,6 +47,18 @@ describe("convertResponsesStreamToJson", () => {
     expect(response.output[0].content[0].text).toBe("OK");
   });
 
+  it("uses authoritative output from the terminal response", async () => {
+    const response = await convertResponsesStreamToJson(stream([
+      ["response.completed", { response: {
+        output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "OK" }] }],
+        usage: { input_tokens: 2, output_tokens: 1, total_tokens: 3 },
+      } }],
+    ]));
+
+    expect(response.status).toBe("completed");
+    expect(response.output[0].content[0].text).toBe("OK");
+  });
+
   it("uses data.type when SSE event lines are absent", async () => {
     const response = await convertResponsesStreamToJson(stream([
       ["response.created", { type: "response.created", response: { id: "resp_test", created_at: 1 } }],
