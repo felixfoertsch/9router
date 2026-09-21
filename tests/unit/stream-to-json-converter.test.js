@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { convertResponsesStreamToJson } from "../../open-sse/transformer/streamToJsonConverter.js";
 
-function stream(events) {
-  return new Response(events.map(([event, data]) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join("")).body;
+function stream(events, includeEvent = true) {
+  return new Response(events.map(([event, data]) => `${includeEvent ? `event: ${event}\n` : ""}data: ${JSON.stringify(data)}\n\n`).join("")).body;
 }
 
 describe("convertResponsesStreamToJson", () => {
@@ -22,5 +22,17 @@ describe("convertResponsesStreamToJson", () => {
       role: "assistant",
       content: [{ type: "output_text", text: "OK", annotations: [] }],
     }]);
+  });
+
+  it("uses data.type when SSE event lines are absent", async () => {
+    const response = await convertResponsesStreamToJson(stream([
+      ["response.created", { type: "response.created", response: { id: "resp_test", created_at: 1 } }],
+      ["response.output_item.added", { type: "response.output_item.added", output_index: 0, item: { type: "message", role: "assistant", content: [] } }],
+      ["response.output_text.delta", { type: "response.output_text.delta", output_index: 0, content_index: 0, delta: "OK" }],
+      ["response.completed", { type: "response.completed", response: {} }],
+    ], false));
+
+    expect(response.status).toBe("completed");
+    expect(response.output[0].content[0].text).toBe("OK");
   });
 });
