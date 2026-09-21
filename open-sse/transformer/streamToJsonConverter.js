@@ -89,9 +89,10 @@ export async function convertResponsesStreamToJson(stream) {
 
     let eventLine = "";
     for (const line of raw.split(/\r?\n/)) {
-      if (line.startsWith("event:")) eventLine = line;
-      else if (line.startsWith("data:")) {
-        processSSEMessage(`${eventLine}\n${line}`, state);
+      const trimmed = line.trimStart();
+      if (trimmed.startsWith("event:")) eventLine = trimmed;
+      else if (trimmed.startsWith("data:")) {
+        processSSEMessage(`${eventLine}\n${trimmed}`, state);
         eventLine = "";
       }
     }
