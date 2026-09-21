@@ -35,6 +35,18 @@ describe("convertResponsesStreamToJson", () => {
     expect(response.output[0].content[0].text).toBe("OK");
   });
 
+  it("parses events separated by blank lines containing whitespace", async () => {
+    const body = [
+      `event: response.output_item.added\ndata: ${JSON.stringify({ output_index: 0, item: { type: "message", role: "assistant", content: [] } })}`,
+      `event: response.output_text.delta\ndata: ${JSON.stringify({ output_index: 0, content_index: 0, delta: "OK" })}`,
+      `event: response.completed\ndata: ${JSON.stringify({ response: {} })}`,
+    ].join("\n \n");
+    const response = await convertResponsesStreamToJson(new Response(body).body);
+
+    expect(response.status).toBe("completed");
+    expect(response.output[0].content[0].text).toBe("OK");
+  });
+
   it("uses data.type when SSE event lines are absent", async () => {
     const response = await convertResponsesStreamToJson(stream([
       ["response.created", { type: "response.created", response: { id: "resp_test", created_at: 1 } }],
