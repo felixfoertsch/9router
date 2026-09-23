@@ -87,9 +87,16 @@ describe("client quota endpoint", () => {
           status: "unavailable",
           quotas: [],
         },
+        {
+          id: "conn-unsupported",
+          provider: "openrouter",
+          identity: "conn-unsupported",
+          status: "unavailable",
+          quotas: [],
+        },
       ],
     });
-    expect(mocks.getConnectionUsage).toHaveBeenCalledTimes(2);
+    expect(mocks.getConnectionUsage).toHaveBeenCalledTimes(3);
     expect(JSON.stringify(await (await GET(new Request("http://localhost/api/v1/usage"))).json())).not.toContain("secret");
   });
 
