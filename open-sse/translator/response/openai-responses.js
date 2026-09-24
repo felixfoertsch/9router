@@ -621,6 +621,21 @@ export function openaiResponsesToOpenAIResponse(chunk, state) {
     return null;
   }
 
+  // Incomplete responses are failures when no visible output was produced.
+  if (eventType === "response.incomplete") {
+    if (state.finishReasonSent) return null;
+
+    const reason = data.response?.incomplete_details?.reason || "unknown";
+    state.finishReasonSent = true;
+    state.finishReason = OPENAI_FINISH.LENGTH;
+
+    return buildChunk(
+      { id: state.chatId || `chatcmpl-${Date.now()}`, created: state.created || Math.floor(Date.now() / 1000), model: state.model || MODEL_FALLBACK },
+      { content: `[Error] Response incomplete: ${reason}` },
+      OPENAI_FINISH.LENGTH
+    );
+  }
+
   // Error events from Responses API (e.g. model_not_found)
   if (eventType === "error" || eventType === "response.failed") {
     // Avoid emitting duplicate errors (error + response.failed arrive back-to-back)
